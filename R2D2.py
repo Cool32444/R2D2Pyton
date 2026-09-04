@@ -2,12 +2,15 @@ import json
 import os
 from google import genai
 import Canvas
+import HAC
 
 client = genai.Client()
-ai_model = "gemini-3.6-flash"
+ai_model = "gemini-3.5-flash-lite"
 thinking_level = "minimal"
 
-canvas_context = "The canvas data is:\n{Canvas.get_user_schedule_summary()}"
+canvas_context = "The canvas data is, respond in CTE time: \
+\n" + Canvas.get_user_schedule_summary()
+hac_context = "The HAC data is: \n" + HAC.get_hac_grades()
 
 ai_instruction = "You are R2D2 from Star Wars. You are a personal droid " \
 "meant to serve and make life simpler."
@@ -25,52 +28,66 @@ def loadInteractionID():
             print(f"Error loading saved state: {e}")
     return None
 
-def saveInteractionID():
+def saveInteractionID(current_id):
     with open(interaction_file, "w") as f:
-        json.dump({"last_interaction_id": interaction_id}, f, indent=4)
+        json.dump({"last_interaction_id": current_id}, f, indent=4)
 
 interaction_id = loadInteractionID()
 
 def sendToGemini(userInput):
     global interaction_id
+    #print(interaction_id)
+
     params = {
-        "model":ai_model,
-        "input":userInput,
-        "system_instruction":ai_instruction+canvas_context,
-        "generation_config":
-        {
-            "thinking_level":thinking_level
-        },
-        "stream":True,
+    "model": ai_model,
+    "system_instruction": ai_instruction,
+    "input": userInput,
     }
 
+# Only add previous_interaction_id if interaction_id contains a valid value
     if interaction_id:
         params["previous_interaction_id"] = interaction_id
 
-    stream = client.interactions.create(**params)
-    
-    print("R2D2: ")
+# Unpack the parameters into the function call
+    interaction = client.interactions.create(
+        model=ai_model,
+        system_instruction=ai_instruction+ " " + canvas_context + " " + hac_context,
+        input=userInput,
+        previous_interaction_id=interaction_id if interaction_id else None,
+        stream=True
+    )
+    print("R2D2: \n")
 
-    for event in stream:
+    for event in interaction:
+        # Handle tuple wrapping if present
+        if isinstance(event, tuple):
+            event = event[0]  # Extract the actual event object from the tuple
 
-        if hasattr(event, "interaction") and event.interaction and event.interaction.id:
+        # Save interaction ID if present
+        if hasattr(event, "interaction") and getattr(event.interaction, "id", None):
             interaction_id = event.interaction.id
-            saveInteractionID()
+            saveInteractionID(interaction_id)
 
-        if event.event_type == "step.delta":
-            if event.delta.type == "text":
-                print(event.delta.text, end="")
-    print("\n")
+        # Print streaming text safely
+        if hasattr(event, "delta") and getattr(event.delta, "text", None):
+            print(event.delta.text, end="", flush=True)
+    print("\n") 
 
 
 while True:
     userInput = input("User: ")
 
     if userInput.lower() in ["exit", "quit"]:
-        saveInteractionID()
+        saveInteractionID(interaction_id)
         break
-    else:
-        if userInput.lower() in ["canvas"]:
-            canvas_context = "The canvas data is:\n{Canvas.get_user_schedule_summary()}"
+    if userInput.lower() in ["canvas"]:
+        canvas_context = "The canvas data is:\n" + Canvas.get_user_schedule_summary()
+        print(canvas_context)
+        continue
+    if userInput.lower() in ["hac"]:
+        hac_context = "The HAC data is:\n" + HAC.get_hac_grades()
+        print(hac_context)
+        continue
+            
 
     sendToGemini(userInput)
