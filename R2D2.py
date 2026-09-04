@@ -2,10 +2,11 @@ from google import genai
 
 client = genai.Client()
 
-userInput = input("User: ");
+while True:
+    userInput = input("User: ")
 
-interaction = client.interactions.create(
-    model="gemini-3.8-flash",
-    input= userInput,
-)
-print("R2D2: " + interaction.output_text)
+    interaction = client.interactions.create(
+        model="gemini-3.5-flash-lite",
+        input=userInput,
+    )
+    print(interaction.output_text)
