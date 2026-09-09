@@ -28,9 +28,11 @@ def loadInteractionID():
             print(f"Error loading saved state: {e}")
     return None
 
+
 def saveInteractionID(current_id):
-    with open(interaction_file, "w") as f:
-        json.dump({"last_interaction_id": current_id}, f, indent=4)
+    if current_id:
+        with open(interaction_file, "w") as f:
+            json.dump({"last_interaction_id": current_id}, f, indent=4)
 
 interaction_id = loadInteractionID()
 
@@ -44,11 +46,11 @@ def sendToGemini(userInput):
     "input": userInput,
     }
 
-# Only add previous_interaction_id if interaction_id contains a valid value
+	# Only add previous_interaction_id if interaction_id contains a valid value
     if interaction_id:
         params["previous_interaction_id"] = interaction_id
 
-# Unpack the parameters into the function call
+	# Unpack the parameters into the function call
     interaction = client.interactions.create(
         model=ai_model,
         system_instruction=ai_instruction+ " " + canvas_context + " " + hac_context,
@@ -63,14 +65,13 @@ def sendToGemini(userInput):
         if isinstance(event, tuple):
             event = event[0]  # Extract the actual event object from the tuple
 
-        # Save interaction ID if present
         if hasattr(event, "interaction") and getattr(event.interaction, "id", None):
-            interaction_id = event.interaction.id
-            saveInteractionID(interaction_id)
+                interaction_id = event.interaction.id
+                saveInteractionID(interaction_id)
 
         # Print streaming text safely
         if hasattr(event, "delta") and getattr(event.delta, "text", None):
-            print(event.delta.text, end="", flush=True)
+            print(event.delta.text,end=h"", flush=True)
     print("\n") 
 
 
