@@ -8,13 +8,13 @@ HAC_PASS = os.getenv("HAC_PASSWORD")
 def get_hac_grades():
     try:
         with sync_playwright() as p:
-            browser = p.chromium.launch(headless=False)
+            browser = p.chromium.launch(headless=True)
             context = browser.new_context()
             page = context.new_page()
 
             base_url = "https://homeaccess.katyisd.org/HomeAccess"
 
-            # 1. Login to Katy ISD HAC
+            # 1. Login
             page.goto(f"{base_url}/Account/LogOn", wait_until="networkidle")
             page.wait_for_selector('input[name="LogOnDetails.UserName"]', timeout=10000)
             
@@ -29,35 +29,45 @@ def get_hac_grades():
                 browser.close()
                 return "Error: Invalid HAC username or password."
 
-            # 2. Click the 'Grades' tab
-            grades_tab = page.locator('a:has-text("Grades"), #hac-Grades, [title="Grades"]').first
-            if grades_tab.count() > 0:
-                grades_tab.click()
-                page.wait_for_load_state("networkidle")
+            # 2. Navigate directly to Classes / Classwork tab (Live Grades)
+            page.goto(f"{base_url}/Content/Student/Assignments.aspx", wait_until="networkidle")
+            page.wait_for_timeout(3000)
 
-            # 3. Scan all frames for page content
-            page.wait_for_timeout(3000)  # Short pause for ASP.NET dynamic panel render
+            # Locate active iframe if present
+            target_frame = page
+            for frame in page.frames:
+                if frame.locator(".AssignmentClass, .sg-asp-table").count() > 0:
+                    target_frame = frame
+                    break
+
+            output_lines = ["=== CURRENT LIVE GRADES & ASSIGNMENTS ==="]
             
-            frames_to_check = page.frames if len(page.frames) > 1 else [page]
-            grades_summary = []
+            # Locate all course assignment blocks
+            courses = target_frame.locator(".AssignmentClass").all()
+            
+            if not courses:
+                # Fallback: Parse whole body inner text if structure changes
+                body_text = target_frame.inner_text("body")
+                browser.close()
+                return f"=== RAW CLASSWORK TEXT ===\n{body_text}"
 
-            for frame in frames_to_check:
-                # Look for course headers or table rows
-                headings = frame.locator(".sg-header-heading, .sg-asp-table-data-row, [class*='header']").all()
-                for h in headings:
-                    text = h.inner_text().strip()
-                    # Filter for Katy ISD course code pattern (e.g. 0113A - 6 APENGLAN A)
-                    if text and any(code in text for code in ["AP", "KAP", "ENG", "PRE CALC", "CALC", "PHYSICS", "COMP SCI", "BAND", "MUS"]):
-                        # Clean multiple newlines into a single string
-                        clean_text = " ".join(text.split())
-                        grades_summary.append(f"• {clean_text}")
+            for course in courses:
+                # Course Header contains Title + Current Running Average (e.g., '1010 - ENG 1 (94.50%)')
+                header_elem = course.locator(".sg-header-heading, .CourseHeader, .AssignmentGroupHeaderRow").first
+                header_text = " ".join(header_elem.inner_text().split()) if header_elem.count() > 0 else "Unknown Class"
+                
+                output_lines.append(f"\nCourse: {header_text}")
+                output_lines.append("Assignments:")
+
+                # Get all individual assignment rows for this specific class
+                assignments = course.locator(".sg-asp-table-data-row").all()
+                for assignment in assignments:
+                    assign_text = " ".join(assignment.inner_text().split())
+                    if assign_text:
+                        output_lines.append(f"  - {assign_text}")
 
             browser.close()
-
-            if not grades_summary:
-                return "No class grade elements found on the page."
-
-            return "Current Class Averages:\n" + "\n".join(grades_summary)
+            return "\n".join(output_lines)
 
     except Exception as e:
         return f"Error fetching HAC grades: {e}"

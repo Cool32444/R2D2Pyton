@@ -16,6 +16,56 @@ ai_instruction = "You are R2D2 from Star Wars. You are a personal droid " \
 "meant to serve and make life simpler."
 interaction_file = "R2D2_inerteraction_id.json"
 
+update_canvas_data_function = {
+	"type" : "function",
+	"name" : "update_canvas_data",
+	"description" : "Update the Canvas data that is fed to the AI, it is only \
+	 needed if new info is added and it is requested to be updated",
+	"parameters" :
+	{
+		"type" : "object",
+		"properties" : {},
+		"required" : []
+	}
+}
+
+update_hac_data_function = {
+	"type" : "function",
+	"name" : "update_hac_data",
+	"description" : "Update the Home Access Center data that is fed to the AI, \
+	it is only needed if new info is added and it is requested to be updated",
+	"parameters" :
+	{
+		"type" : "object",
+		"properties" : {},
+		"required" : []
+	}
+}
+
+set_light_values_function = {
+	"type" : "function",
+	"name" : "set_light_values",
+	"description" : "Change the appearance of a physical light in the household with the LifX api",
+	"parameters" :
+	{
+		"type" : "object",
+		"properties" : {
+			"power" : {
+				"type" : "string",
+				"description" : "'on' if the lightbulb should be on, 'off' if otherwise"
+			},
+			"color" : {
+				"type" : "string",
+				"description" : "the color the lightbulb should be"
+			},
+			"brightness" : {
+				"type" : "float",
+				"description" : "the brightness being a percentage of 0-1, 0 being completely dark and 1 being full brightness"
+			},
+		},
+		"required" : ["power","color","brightness"]
+	}
+}
 
 
 def loadInteractionID():
@@ -38,6 +88,8 @@ interaction_id = loadInteractionID()
 
 def sendToGemini(userInput):
     global interaction_id
+    global canvas_context
+    global hac_context
     #print(interaction_id)
 
     params = {
@@ -60,8 +112,10 @@ def sendToGemini(userInput):
     )
     print("R2D2: \n")
 
+
     for event in interaction:
-        # Handle tuple wrapping if present
+        # Handle tuple wrapping if present        
+        
         if isinstance(event, tuple):
             event = event[0]  # Extract the actual event object from the tuple
 
@@ -71,7 +125,8 @@ def sendToGemini(userInput):
 
         # Print streaming text safely
         if hasattr(event, "delta") and getattr(event.delta, "text", None):
-            print(event.delta.text,end=h"", flush=True)
+            print(event.delta.text,end="", flush=True)
+             
     print("\n") 
 
 
