@@ -80,7 +80,7 @@ control_lifx_lights_function = {
     }
 }
 
-console_mode = True
+console_mode = False
 
 def loadInteractionID():
     if os.path.exists(interaction_file):
