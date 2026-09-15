@@ -5,18 +5,48 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>R2D2 Web Assistant</title>
     
-    <!-- PyScript CSS & JS -->
+    <!-- PyScript Core CSS & JS -->
     <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css" />
     <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
 
     <style>
-        body { font-family: Arial, sans-serif; background: #0f172a; color: #fff; max-width: 600px; margin: 20px auto; padding: 20px; }
-        #chat-box { background: #1e293b; height: 350px; overflow-y: auto; padding: 15px; border-radius: 8px; margin-bottom: 10px; }
+        body {
+            font-family: Arial, sans-serif;
+            background: #0f172a;
+            color: #fff;
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+        #chat-box {
+            background: #1e293b;
+            height: 350px;
+            overflow-y: auto;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #334155;
+        }
         .user-msg { color: #60a5fa; margin: 5px 0; }
         .r2-msg { color: #4ade80; margin: 5px 0; }
+        .sys-msg { color: #f87171; margin: 5px 0; }
         .controls { display: flex; gap: 8px; }
-        input[type="text"], input[type="password"] { flex: 1; padding: 10px; border-radius: 4px; border: 1px solid #334155; background: #0f172a; color: #fff; }
-        button { padding: 10px 15px; border: none; background: #2563eb; color: #fff; border-radius: 4px; cursor: pointer; }
+        input[type="text"], input[type="password"] {
+            flex: 1;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #334155;
+            background: #0f172a;
+            color: #fff;
+        }
+        button {
+            padding: 10px 15px;
+            border: none;
+            background: #2563eb;
+            color: #fff;
+            border-radius: 4px;
+            cursor: pointer;
+        }
         button:disabled { background: #475569; }
     </style>
 </head>
@@ -32,23 +62,43 @@
 
     <div class="controls">
         <input type="text" id="user-input" placeholder="Type a message or click Mic...">
-        <button id="send-btn" py-click="handle_text_input">Send</button>
+        <button id="send-btn" onclick="triggerSend()">Send</button>
         <button id="mic-btn" onclick="toggleMic()">🎤 Start Talking</button>
     </div>
 
-    <!-- Configure required Python packages and virtual files -->
+    <!-- Configure required Python packages and local files -->
     <py-config>
         packages = ["google-genai"]
         [[fetch]]
         files = ["./R2D2.py", "./R2Functions.py", "./Canvas.py", "./HAC.py", "./LifX.py"]
     </py-config>
 
-    <!-- JavaScript Bridge for Browser Speech APIs -->
+    <!-- JavaScript Bridge for Web Speech & UI Actions -->
     <script>
         let recognition;
         let isListening = false;
 
-        // Web Speech API for Browser-Based Voice Input
+        // Trigger message submission to PyScript engine
+        function triggerSend() {
+            const inputField = document.getElementById("user-input");
+            const text = inputField.value.trim();
+            if (text && window.pyscript) {
+                pyscript.interpreter.globals.get('process_input')(text);
+            }
+        }
+
+        // Enable pressing "Enter" in the text box
+        document.addEventListener("DOMContentLoaded", () => {
+            const inputField = document.getElementById("user-input");
+            inputField.addEventListener("keypress", (event) => {
+                if (event.key === "Enter") {
+                    event.preventDefault();
+                    triggerSend();
+                }
+            });
+        });
+
+        // Web Speech API for voice input
         function toggleMic() {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             if (!SpeechRecognition) {
@@ -72,8 +122,7 @@
                 recognition.onresult = (event) => {
                     const transcript = event.results[0][0].transcript;
                     document.getElementById("user-input").value = transcript;
-                    // Trigger PyScript function
-                    pyscript.interpreter.globals.get('process_input')(transcript);
+                    triggerSend();
                 };
 
                 recognition.onend = () => {
@@ -88,10 +137,9 @@
             }
         }
 
-        // Web Speech API for Browser-Based Voice Output (Replaces sounddevice in R2D2Speech.py)
+        // Web Speech Synthesis for audio playback
         function speakText(text) {
             if ('speechSynthesis' in window) {
-                // Strip markdown styling for speech readouts
                 const cleanText = text.replace(/\*\*/g, '').replace(/^\s*[\*\-]\s*/gm, '');
                 const utterance = new SpeechSynthesisUtterance(cleanText);
                 window.speechSynthesis.speak(utterance);
@@ -99,29 +147,31 @@
         }
     </script>
 
-    <!-- PyScript execution block -->
+    <!-- PyScript Python Execution Block -->
     <script type="py">
         import os
         from pyscript import document, js
-        import R2D2  # Loads your R2D2.py file directly
+        import R2D2
 
         def append_chat(sender, message):
             chat_box = document.querySelector("#chat-box")
             div = document.createElement("div")
             if sender == "You":
                 div.className = "user-msg"
-            else:
+            elif sender == "R2D2":
                 div.className = "r2-msg"
+            else:
+                div.className = "sys-msg"
             div.innerHTML = f"<strong>{sender}:</strong> {message}"
             chat_box.appendChild(div)
             chat_box.scrollTop = chat_box.scrollHeight
 
         def process_input(text):
-            if not text.strip():
+            if not text or not str(text).strip():
                 return
             
-            # Set API Key dynamically if provided in UI
-            api_key = document.querySelector("#api-key-input").value
+            # Retrieve and assign API key dynamically if provided
+            api_key = document.querySelector("#api-key-input").value.strip()
             if api_key:
                 os.environ["GEMINI_API_KEY"] = api_key
 
@@ -130,17 +180,13 @@
 
             try:
                 # Call sendToGemini directly from R2D2.py
-                response = R2D2.sendToGemini(text)
+                response = R2D2.sendToGemini(str(text))
                 append_chat("R2D2", response)
                 
-                # Send text response to browser Web Speech API
+                # Speak output using browser Web Speech API
                 js.speakText(response)
             except Exception as e:
                 append_chat("System Error", str(e))
-
-        def handle_text_input(event):
-            text = document.querySelector("#user-input").value
-            process_input(text)
     </script>
 </body>
 </html>
