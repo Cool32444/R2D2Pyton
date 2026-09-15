@@ -1,8 +1,7 @@
 import os
 import requests
 
-#TOKEN = os.getenv("LIFX_TOKEN")
-TOKEN = "c1435628cf0d28b7483712be856dbfef5904bfdad934002f484218a5e597df53"
+TOKEN = os.getenv("LIFX_TOKEN")
 def set_lifx_light_color(color,selector,brightness,power,duration):
     print(f"{color}")
     url = f"https://api.lifx.com/v1/lights/{selector}/state"
