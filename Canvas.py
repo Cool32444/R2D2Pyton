@@ -3,8 +3,7 @@ from datetime import datetime, timedelta, timezone
 import os
 
 API_URL = "https://katyisd.instructure.com/"
-#API_KEY = os.getenv("CANVAS_TOKEN")
-API_KEY = "2174~7fKWKVvHmZuP6EKaXAkxB237T9eX4KWvNWEHWfvWU8cLw4NT3u4UzauVA462x6my"
+API_KEY = os.getenv("CANVAS_TOKEN")
 
 def get_canvas_data():
     canvas = Canvas(API_URL, API_KEY)
