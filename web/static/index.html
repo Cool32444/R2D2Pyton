@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+    <title>R2D2 AI</title>
+
+    <link rel="stylesheet" href="/static/style.css">
+
+</head>
+
+<body>
+
+    <div class="app">
+
+        <aside class="sidebar">
+
+            <h2>R2D2</h2>
+
+            <button onclick="newChat()">
+                + New Chat
+            </button>
+
+        </aside>
+
+
+        <main class="chat">
+
+            <div id="messages" class="messages">
+
+                <div class="message r2">
+                    R2D2: Beep boop! How can I help?
+                </div>
+
+            </div>
+
+
+            <div class="input-area">
+
+                <input
+                    id="messageInput"
+                    type="text"
+                    placeholder="Message R2D2..."
+                    onkeydown="handleKey(event)"
+                >
+
+                <button onclick="sendMessage()">
+                    Send
+                </button>
+
+            </div>
+
+        </main>
+
+    </div>
+
+
+    <script src="/static/app.js"></script>
+
+</body>
+
+</html>

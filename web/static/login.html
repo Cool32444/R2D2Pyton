@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>R2D2 Login</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body class="login-page">
+
+    <button onclick="logout()">Logout</button>
+    
+    <div class="login-box">
+
+        <h1>R2D2</h1>
+
+        <p>Authentication required</p>
+
+        <form method="POST" action="/login">
+
+            <input
+                type="password"
+                name="password"
+                placeholder="Password"
+                required
+                autofocus
+            >
+
+            <button type="submit">
+                Login
+            </button>
+
+        </form>
+
+        <p
+            id="error"
+            class="error"
+            style="display:none;"
+        >
+            Incorrect password.
+        </p>
+
+    </div>
+
+    <script>
+
+        const params =
+            new URLSearchParams(window.location.search);
+
+        if (params.get("error") === "1") {
+            document.getElementById("error")
+                .style.display = "block";
+        }
+
+    </script>
+
+</body>
+</html>

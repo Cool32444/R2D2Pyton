@@ -80,6 +80,7 @@ control_lifx_lights_function = {
     }
 }
 
+console_mode = True
 
 def loadInteractionID():
     if os.path.exists(interaction_file):
@@ -232,7 +233,7 @@ def voice_listener():
     except KeyboardInterrupt:
         print("\nVoice mode stopped.")
         
-while True:
+while console_mode:
     userInput = input("User: ")
 
     if userInput.lower() in ["exit", "quit"]:
