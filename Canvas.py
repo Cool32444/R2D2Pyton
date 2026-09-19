@@ -81,6 +81,7 @@ def get_canvas_data():
 
 def get_user_schedule_summary():
     """Formats the 2-week schedule (assignments + calendar events) for R2D2."""
+    print(API_KEY)
     canvas = Canvas(API_URL, API_KEY)
     user = canvas.get_current_user()
     courses = user.get_courses(enrollment_state='active')
